@@ -1,0 +1,9 @@
+[project]
+name = "sensor-analysis"
+version = "0.1.0"
+description = "Analysis tools for CO2 sensors"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "polars>=1.41.0",
+]
