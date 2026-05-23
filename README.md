@@ -16,8 +16,8 @@ DateTime,Sensor1,Sensor2,Sensor3
 2026-05-22 10:01:00,405,415,425
 ```
 
-See [collected data files](data/)
+See [collected data files](data/).
 
 ## Output
 
-See [collected output files](out/)
+See [collected output files](out/).
