@@ -16,8 +16,8 @@ DateTime,Sensor1,Sensor2,Sensor3
 2026-05-22 10:01:00,405,415,425
 ```
 
-See [baseline_CO2_data_2026-05-22_2259.csv](data/baseline_CO2_data_2026-05-22_2259.csv)
+See [collected data files](data/)
 
-## Example output
+## Output
 
-See [out/correlations_2026-05-22_2259.txt](out/correlations_2026-05-22_2259.txt)
+See [collected output files](out/)
