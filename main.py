@@ -3,10 +3,11 @@ Analyze CO2 sensor data from multiple sensors and compare the sensors.
 """
 
 from pathlib import Path
+import sys
 
 import polars as pl
 
-SOURCE = Path("data") / "baseline_CO2_data_2026-05-22_2259.csv"
+SOURCE = Path("data") / "baseline2_CO2_data_2026-05-23_1714.csv"
 TIMESTAMP_COL = "DateTime"
 
 # The most responsive and consistent group of sensors, by eyeball.
@@ -16,6 +17,7 @@ FAVORITES = ["0A", "10A", "10B", "20B", "SP1", "SP3"]
 def load_data(source: str | Path) -> pl.DataFrame:
     """Load and smooth the data."""
     df_raw = pl.read_csv(source, try_parse_dates=True)
+    print(f"Read {source}\n")
 
     # Sort by the timestamp to ensure rolling window calculations work correctly.
     df = df_raw.sort(TIMESTAMP_COL)
@@ -74,6 +76,8 @@ def cross_compare(df: pl.DataFrame, favs: list[str]) -> pl.DataFrame:
     DC Offset, Tracking Variation STD, and Pearson Correlation.
     """
     sensor_cols = [col for col in df.columns if col != TIMESTAMP_COL]
+    print(f"Cross-comparing from sensors {sensor_cols}")
+
     pairs = []
     for fav in favs:
         if fav not in sensor_cols:
@@ -104,5 +108,6 @@ def example():
 
 
 if __name__ == "__main__":
-    metrics_df = load_and_compare(SOURCE, FAVORITES)
+    source = sys.argv[1] if len(sys.argv) > 1 else SOURCE
+    metrics_df = load_and_compare(source, FAVORITES)
     metrics_df.show(1000)
