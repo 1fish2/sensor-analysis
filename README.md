@@ -21,6 +21,14 @@ uv run main.py
 uv run main.py data/baseline2_CO2_data_2026-05-22_2259.csv
 ```
 
+Or use Marimo:
+
+```bash
+uv run marimo edit main.py --mcp --port 10080
+```
+
+and open <http://localhost:10080/mcp/server>. In the Skills tab, you can register the skills server by clicking **Add Server**. It should auto-detect the local URL.
+
 ## Input data
 
 See [collected data files](data/) `*.csv` and their notes `*.md`. [data/baseline_2026-05-20+_notes.md](data/baseline_2026-05-20+_notes.md) explains the experiment setup and actions.
