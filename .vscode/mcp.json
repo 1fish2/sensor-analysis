@@ -2,7 +2,7 @@
   "servers": {
     "marimo": {
       "type": "http",
-      "url": "http://localhost:10080/mcp/server"
+      "url": "http://127.0.0.1:10082/mcp/server"
     }
   }
 }

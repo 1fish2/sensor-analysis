@@ -5,6 +5,6 @@ description = "Analysis tools for CO2 sensors"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "marimo[recommended]>=0.23.8",
+    "marimo[mcp,recommended]>=0.23.8",
     "polars>=1.41.0",
 ]

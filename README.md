@@ -24,10 +24,16 @@ uv run main.py data/baseline2_CO2_data_2026-05-22_2259.csv
 Or use Marimo:
 
 ```bash
-uv run marimo edit main.py --mcp --port 10080
+uv run marimo edit main.py --mcp --port 10082
 ```
 
-and open <http://localhost:10080/mcp/server>. In the Skills tab, you can register the skills server by clicking **Add Server**. It should auto-detect the local URL.
+and open <http://127.0.0.1:10082/mcp/server>. In the Skills tab, you can register the skills server by clicking **Add Server**. It should auto-detect the local URL.
+
+Or run the notebook as a web app:
+
+```bash
+marimo run main.py
+```
 
 ## Input data
 
