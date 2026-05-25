@@ -4,7 +4,7 @@ Analyzes CO2 sensor data from multiple sensors:
 
 * Sorts the data by timestamp to ensure rolling window calculations work correctly.
 * Interpolates to fill gaps in sensor readings. (The sensors report new values at different times.)
-* Applies a rolling mean (moving average) with a 15 minute window to reduce sensor noise.
+* Applies a rolling mean (moving average) with a 7 minute window to reduce sensor noise.
 * Computes comparison metrics between sensor pairs:
   * Count of paired points after discarding leading gaps
   * DC offset (average difference)

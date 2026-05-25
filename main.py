@@ -7,7 +7,7 @@ import sys
 
 import polars as pl
 
-SOURCE = Path("data") / "baseline2_CO2_data_2026-05-23_1714.csv"
+SOURCE = Path("data") / "baseline2_CO2_data_2026-05-24_1157.csv"
 TIMESTAMP_COL = "DateTime"
 
 # The most responsive and consistent group of sensors, by eyeball.
@@ -25,7 +25,7 @@ def load_data(source: str | Path) -> pl.DataFrame:
     # Cast sensor columns to Float64 so initial nulls don't parse as string columns;
     # interpolate() between non-null values (or forward_fill() to repeat the last
     # non-null value);
-    # then apply the rolling mean (moving average) on a 15 minute window to reduce
+    # then apply the rolling mean (moving average) on a 7 minute window to reduce
     # sensor noise.
     sensor_cols = [col for col in df.columns if col != TIMESTAMP_COL]
     df_filtered = df.with_columns(
@@ -33,7 +33,7 @@ def load_data(source: str | Path) -> pl.DataFrame:
             pl.col(col)
             .cast(pl.Float64)
             .interpolate()
-            .rolling_mean_by(TIMESTAMP_COL, window_size="15m")
+            .rolling_mean_by(TIMESTAMP_COL, window_size="7m")
             for col in sensor_cols
         ]
     )
