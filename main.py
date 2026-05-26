@@ -32,7 +32,13 @@ def _(Path):
 
 
 @app.cell
-def _(TIMESTAMP_COL, pl):
+def _(averaging_slider):
+    averaging_window = f"{averaging_slider.value}m"
+    return (averaging_window,)
+
+
+@app.cell
+def _(TIMESTAMP_COL, averaging_window, pl):
     def load_data(source) -> pl.DataFrame:
         """Load and smooth the data."""
         df_raw = pl.read_csv(source, try_parse_dates=True)
@@ -51,7 +57,7 @@ def _(TIMESTAMP_COL, pl):
                 pl.col(col)
                 .cast(pl.Float64)
                 .interpolate()
-                .rolling_mean_by(TIMESTAMP_COL, window_size="7m")
+                .rolling_mean_by(TIMESTAMP_COL, window_size=averaging_window)
                 for col in sensor_cols
             ]
         )
@@ -117,6 +123,31 @@ def _(SOURCE, load_data):
 
 
 @app.cell
+def _(mo):
+    averaging_slider = mo.ui.slider(
+        1, 15, step=1, value=7, label="Moving average window (minutes)", show_value=True
+    )
+    averaging_slider
+    return (averaging_slider,)
+
+
+@app.cell
+def _(FAVORITES, cross_compare, df, mo):
+    metrics_df = cross_compare(df, FAVORITES)
+
+    cross_comparison_widget = mo.md(
+        f"""
+        ### Favorite Sensors Cross-Comparison Table
+        Below are the comparison metrics for all favorites against other active sensors:
+
+        {mo.as_html(metrics_df)}
+        """
+    )
+    cross_comparison_widget
+    return
+
+
+@app.cell
 def _(TIMESTAMP_COL, df, mo):
     sensor_names = sorted([col for col in df.columns if col != TIMESTAMP_COL])
     s1_dropdown = mo.ui.dropdown(options=sensor_names, value="0A", label="Sensor 1")
@@ -155,22 +186,47 @@ def _(compare_sensors, df, mo, s1_dropdown, s2_dropdown):
     else:
         comparison_display = mo.md("*Please select two sensors to compare.*")
     comparison_display
-    return
+    return s1, s2
 
 
 @app.cell
-def _(FAVORITES, cross_compare, df, mo):
-    metrics_df = cross_compare(df, FAVORITES)
+def _(TIMESTAMP_COL, df, pl, s1, s2):
+    import altair as alt
+    import datetime
 
-    cross_comparison_widget = mo.md(
-        f"""
-        ### Favorites Cross-Comparison Table
-        Below are the comparison metrics for all favorites against other active sensors:
+    if s1 and s2:
+        # Align sensors and calculate difference
+        df2 = df.select([TIMESTAMP_COL, s1, s2]).drop_nulls(subset=[s1, s2])
+        plot_df = df2.with_columns((df2[s1] - df2[s2]).alias("Difference"))
 
-        {mo.as_html(metrics_df)}
-        """
-    )
-    cross_comparison_widget
+        # Filter to the last 24 hours of data
+        max_time = plot_df[TIMESTAMP_COL].max()
+        if isinstance(max_time, datetime.datetime):
+            cutoff_time = max_time - datetime.timedelta(hours=24)
+            plot_df = plot_df.filter(pl.col(TIMESTAMP_COL) >= cutoff_time)
+
+        chart = (
+            alt.Chart(plot_df)
+            .mark_line(color="#4f46e5", strokeWidth=2)
+            .encode(
+                x=alt.X(f"{TIMESTAMP_COL}:T", title="Time"),
+                y=alt.Y("Difference:Q", title=f"Difference ({s1} - {s2}) [ppm]"),
+                tooltip=[
+                    alt.Tooltip(f"{TIMESTAMP_COL}:T", title="Time"),
+                    alt.Tooltip("Difference:Q", title="Difference (ppm)", format=".2f"),
+                ],
+            )
+            .properties(
+                title=f"Difference Over Time (Last 24 Hours): {s1} minus {s2}",
+                width="container",
+                height=320,
+            )
+            .interactive()
+        )
+    else:
+        chart = None
+
+    chart
     return
 
 
