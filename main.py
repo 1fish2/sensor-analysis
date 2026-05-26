@@ -1,7 +1,7 @@
 import marimo
 
-__generated_with = "0.23.6"
-app = marimo.App()
+__generated_with = "0.23.8"
+app = marimo.App(app_title="CO₂ sensor comparison")
 
 
 @app.cell
