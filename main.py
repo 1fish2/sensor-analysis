@@ -259,7 +259,7 @@ def _(
             alt.layer(sensors_chart, diff_chart)
             .resolve_scale(y="independent")
             .properties(
-                title="Difference and Sensor Data Over Time",
+                title="Sensor Data and Difference Over Time",
                 width="container",
                 height=320,
             )
