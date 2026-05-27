@@ -164,60 +164,40 @@ def _(TIMESTAMP_COL, df, mo):
 
 
 @app.cell
-def _(compare_sensors, df, mo, s1_dropdown, s2_dropdown):
-    # This runs reactively whenever s1_dropdown or s2_dropdown changes.
+def _(TIMESTAMP_COL, df, mo, s1_dropdown, s2_dropdown):
+    import altair as alt
+
     s1 = s1_dropdown.value
     s2 = s2_dropdown.value
-
-    if s1 and s2 and s1 != s2:
-        metrics = compare_sensors(df, s1, s2)
-        comparison_display = mo.md(
-            f"""
-            #### Metrics comparing all data of sensors **{s1}** and **{s2}**
-            *   **Paired Points**: {metrics["Paired Points"]:,}
-            *   **DC Offset (Average Difference)**: {metrics["DC Offset"]} ppm
-            *   **Tracking Variation (STD of Differences)**: {metrics["Tracking Variation STD"]} ppm
-            *   **Pearson Correlation**: {metrics["Pearson Correlation"]}
-            """
-        )
-    else:
-        comparison_display = mo.md("*Please select two different sensors to compare.*")
-    comparison_display
-    return comparison_display, s1, s2
-
-
-@app.cell
-def _(
-    TIMESTAMP_COL,
-    averaging_slider,
-    comparison_display,
-    comparison_widget,
-    df,
-    mo,
-    s1,
-    s2,
-):
-    import altair as alt
 
     if s1 and s2 and s1 != s2:
         # Align sensors and calculate difference
         df2 = df.select([TIMESTAMP_COL, s1, s2]).drop_nulls(subset=[s1, s2])
         plot_df = df2.with_columns((df2[s1] - df2[s2]).alias("Difference"))
 
-        # # Filter to the last 24 hours of data
-        # max_time = plot_df[TIMESTAMP_COL].max()
-        # if isinstance(max_time, datetime.datetime):
-        #     cutoff_time = max_time - datetime.timedelta(hours=24)
-        #     plot_df = plot_df.filter(pl.col(TIMESTAMP_COL) >= cutoff_time)
-
         # Dynamically downsample to at most 4000 points to keep notebook outputs small
         # and prevent Altair/Marimo serialization size warnings.
-        # TODO: Compare with binned averages
-        # plot_df.group_by_dynamic("DateTime", every="1m").agg([plot_df.col(x).mean(), ...])
         num_rows = len(plot_df)
         if num_rows > 4000:
             step = num_rows // 4000
             plot_df = plot_df.gather_every(step)
+
+        # Zoom/Pan when Shift is NOT held
+        zoom = alt.selection_interval(
+            bind="scales",
+            on="[mousedown[!event.shiftKey], mouseup] > mousemove",
+            translate="[mousedown[!event.shiftKey], mouseup] > mousemove!",
+            zoom="wheel![!event.shiftKey]",
+        )
+
+        # Selection brush when Shift IS held
+        brush = alt.selection_interval(
+            encodings=["x"],
+            name="brush",
+            on="[mousedown[event.shiftKey], mouseup] > mousemove",
+            translate="[mousedown[event.shiftKey], mouseup] > mousemove!",
+            zoom="wheel![event.shiftKey]",
+        )
 
         # Chart showing the difference
         diff_chart = (
@@ -262,12 +242,106 @@ def _(
                 width="container",
                 height=320,
             )
-            .interactive()
+            .add_params(zoom, brush)
+        )
+
+        chart_widget = mo.ui.altair_chart(
+            chart, chart_selection=False, legend_selection=False
         )
     else:
-        chart = None
+        chart_widget = None
+    return chart_widget, s1, s2
 
-    mo.vstack([comparison_widget, averaging_slider, chart, comparison_display])
+
+@app.cell
+def _(TIMESTAMP_COL, chart_widget, compare_sensors, df, mo, s1, s2):
+    import datetime
+
+    if s1 and s2 and s1 != s2:
+        brush_selection = (
+            chart_widget.selections.get("brush") if chart_widget is not None else None
+        )
+
+        if (
+            brush_selection
+            and TIMESTAMP_COL in brush_selection
+            and brush_selection[TIMESTAMP_COL]
+        ):
+            times = brush_selection[TIMESTAMP_COL]
+
+            def to_dt(val):
+                if isinstance(val, (int, float)):
+                    return datetime.datetime.fromtimestamp(val / 1000)
+                if isinstance(val, str):
+                    return datetime.datetime.fromisoformat(val)
+                return val
+
+            min_time = to_dt(times[0])
+            max_time = to_dt(times[1])
+
+            # Filter the original high-resolution df to the selected range
+            filtered_df = df.filter(
+                (df[TIMESTAMP_COL] >= min_time) & (df[TIMESTAMP_COL] <= max_time)
+            )
+            metrics = compare_sensors(filtered_df, s1, s2)
+
+            time_format = "%Y-%m-%d %H:%M:%S"
+            min_str = (
+                min_time.strftime(time_format)
+                if hasattr(min_time, "strftime")
+                else str(min_time)
+            )
+            max_str = (
+                max_time.strftime(time_format)
+                if hasattr(max_time, "strftime")
+                else str(max_time)
+            )
+
+            range_info = f"for selected time range: **{min_str}** to **{max_str}**"
+        else:
+            metrics = compare_sensors(df, s1, s2)
+            range_info = "for **all** data (no custom range selected)"
+
+        comparison_display = mo.md(
+            f"""
+            #### Metrics comparing sensors **{s1}** and **{s2}** {range_info}
+
+            *   **Paired Points**: {metrics["Paired Points"]:,}
+            *   **DC Offset (Average Difference)**: {metrics["DC Offset"]} ppm
+            *   **Tracking Variation (STD of Differences)**: {metrics["Tracking Variation STD"]} ppm
+            *   **Pearson Correlation**: {metrics["Pearson Correlation"]}
+            """
+        )
+    else:
+        comparison_display = mo.md("*Please select two different sensors to compare.*")
+    return (comparison_display,)
+
+
+@app.cell
+def _(
+    averaging_slider,
+    chart_widget,
+    comparison_display,
+    comparison_widget,
+    mo,
+    s1,
+    s2,
+):
+    tip = mo.md(
+        """
+        💡 **Tip**: Hold **Shift** and drag on the chart to select a custom time range to compute metrics over.
+        Drag normally to pan/zoom, or double-click to reset view.
+        """ if s1 and s2 and s1 != s2 else ""
+    )
+    mo.vstack(
+        [
+            comparison_widget,
+            averaging_slider,
+            tip,
+            chart_widget,
+            comparison_display,
+        ]
+    )
     return
 
 
