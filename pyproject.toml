@@ -5,8 +5,25 @@ description = "Analysis tools for CO2 sensors"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "marimo[mcp,recommended]>=0.23.8",
+    "marimo[lsp,mcp,recommended]>=0.23.8",
     "polars>=1.41.0",
-    "altair>=5.0.0",
-    "ipython",
+    "altair>=6.1.0",
+    "ipython>=9.13.0",
+    "google-genai>=2.6.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ty>=0.0.39",
+]
+
+[tool.marimo.language_servers.pylsp]
+enabled = true               # Enable/disable pylsp
+enable_ruff = true           # Linting with ruff (enabled by default, if installed)
+enable_pydocstyle = true     # Check docstring style
+
+[tool.marimo.language_servers.ty]
+enabled = true
+
+[tool.marimo.diagnostics]
+enabled = true

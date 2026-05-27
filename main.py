@@ -173,6 +173,7 @@ def _(compare_sensors, df, mo, s1_dropdown, s2_dropdown):
     s2 = s2_dropdown.value
 
     if s1 and s2:
+    if s1 and s2 and s1 != s2:
         metrics = compare_sensors(df, s1, s2)
         comparison_display = mo.md(
             f"""
@@ -184,7 +185,7 @@ def _(compare_sensors, df, mo, s1_dropdown, s2_dropdown):
             """
         )
     else:
-        comparison_display = mo.md("*Please select two sensors to compare.*")
+        comparison_display = mo.md("*Please select two different sensors to compare.*")
     comparison_display
     return s1, s2
 
@@ -194,7 +195,7 @@ def _(TIMESTAMP_COL, df, pl, s1, s2):
     import altair as alt
     import datetime
 
-    if s1 and s2:
+    if s1 and s2 and s1 != s2:
         # Align sensors and calculate difference
         df2 = df.select([TIMESTAMP_COL, s1, s2]).drop_nulls(subset=[s1, s2])
         plot_df = df2.with_columns((df2[s1] - df2[s2]).alias("Difference"))
@@ -205,7 +206,8 @@ def _(TIMESTAMP_COL, df, pl, s1, s2):
             cutoff_time = max_time - datetime.timedelta(hours=24)
             plot_df = plot_df.filter(pl.col(TIMESTAMP_COL) >= cutoff_time)
 
-        chart = (
+        # Chart showing the difference
+        diff_chart = (
             alt.Chart(plot_df)
             .mark_line(color="#4f46e5", strokeWidth=2)
             .encode(
@@ -216,8 +218,34 @@ def _(TIMESTAMP_COL, df, pl, s1, s2):
                     alt.Tooltip("Difference:Q", title="Difference (ppm)", format=".2f"),
                 ],
             )
+        )
+
+        # Chart showing s1 and s2 sensor values sharing the same Y-axis
+        sensors_chart = (
+            alt.Chart(plot_df)
+            .transform_fold([s1, s2], as_=["Sensor", "Value"])
+            .mark_line(strokeWidth=2)
+            .encode(
+                x=alt.X(f"{TIMESTAMP_COL}:T"),
+                y=alt.Y("Value:Q", title="Sensor Values [ppm]"),
+                color=alt.Color(
+                    "Sensor:N",
+                    scale=alt.Scale(range=["#f59e0b", "#10b981"]),
+                    legend=alt.Legend(title="Sensors"),
+                ),
+                tooltip=[
+                    alt.Tooltip(f"{TIMESTAMP_COL}:T", title="Time"),
+                    alt.Tooltip("Sensor:N", title="Sensor"),
+                    alt.Tooltip("Value:Q", title="Value (ppm)", format=".2f"),
+                ],
+            )
+        )
+
+        chart = (
+            alt.layer(diff_chart, sensors_chart)
+            .resolve_scale(y="independent")
             .properties(
-                title=f"Difference Over Time (Last 24 Hours): {s1} minus {s2}",
+                title=f"Difference and Sensor Data Over Time (Last 24 Hours)",
                 width="container",
                 height=320,
             )

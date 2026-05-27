@@ -11,28 +11,33 @@ Analyzes CO2 sensor data from multiple sensors:
   * Tracking variation STD (sample standard deviation of differences, insensitive to the DC offset)
   * Pearson correlation coefficient
 
-## Usage
+## How to Run It
+
+Run the Marimo notebook editor in the Antigravity or VS Code IDE:
+
+* Install the Marimo extension from the marketplace.
+* Click the Ⓜ️ Marimo button at the top of the VS Code/Antigravity window.
+
+Run the Marimo notebook editor in a browser:
 
 ```bash
-uv run main.py
+uv run marimo edit main.py --mcp --port 10082 --no-token
 ```
 
-```bash
-uv run main.py data/baseline2_CO2_data_2026-05-22_2259.csv
-```
+and configure <http://127.0.0.1:10082/mcp/server> in `~/.gemini/config/mcp_config.json` as an MCP server to the IDE's LLM Agent (Agent tab, ... menu, MCP Servers, edit, Manage MCP Servers, View Raw Config).
 
-Or use Marimo:
-
-```bash
-uv run marimo edit main.py --mcp --port 10082
-```
-
-and open <http://127.0.0.1:10082/mcp/server>. In the Skills tab, you can register the skills server by clicking **Add Server**. It should auto-detect the local URL.
-
-Or run the notebook as a web app:
+Run the notebook as a web app:
 
 ```bash
 marimo run main.py
+```
+
+Command line script:
+
+```bash
+uv run main.py
+
+uv run main.py data/baseline2_CO2_data_2026-05-22_2259.csv
 ```
 
 ## Input data
