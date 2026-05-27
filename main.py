@@ -8,8 +8,7 @@ app = marimo.App(app_title="CO₂ sensor comparison")
 def _(mo):
     mo.md(r"""
     # 📊 CO2 Sensor Comparison Dashboard
-
-    This interactive notebook loads CO2 sensor data, filters noise using a rolling mean, interpolates dropouts, and compares metrics (DC offset, Tracking Variation STD, Pearson correlation) between different sensors.
+    This interactive notebook loads CO2 sensor data, filters noise using a moving average, interpolates over dropouts, and compares metrics (DC offset, Tracking Variation STD, Pearson correlation) between different sensors.
     """)
     return
 
@@ -153,17 +152,15 @@ def _(TIMESTAMP_COL, df, mo):
     s1_dropdown = mo.ui.dropdown(options=sensor_names, value="0A", label="Sensor 1")
     s2_dropdown = mo.ui.dropdown(options=sensor_names, value="0B", label="Sensor 2")
 
-    # We display them nicely in a row
+    # Display the selector widgets in a row
     comparison_widget = mo.md(
         f"""
-        ### Interactive Sensor Comparison
-        Select two sensors to compare in real time:
-
-        {mo.hstack([s1_dropdown, s2_dropdown])}
+        ### Select two sensors to compare:
+        {mo.hstack([s1_dropdown, s2_dropdown], justify="start", gap=2)}
         """
     )
     comparison_widget
-    return s1_dropdown, s2_dropdown
+    return comparison_widget, s1_dropdown, s2_dropdown
 
 
 @app.cell
@@ -172,13 +169,12 @@ def _(compare_sensors, df, mo, s1_dropdown, s2_dropdown):
     s1 = s1_dropdown.value
     s2 = s2_dropdown.value
 
-    if s1 and s2:
     if s1 and s2 and s1 != s2:
         metrics = compare_sensors(df, s1, s2)
         comparison_display = mo.md(
             f"""
-            #### Metrics between **{s1}** and **{s2}**
-            *   **Paired Points**: {metrics["Paired Points"]}
+            #### Metrics comparing sensors **{s1}** and **{s2}**
+            *   **Paired Points**: {metrics["Paired Points"]:,}
             *   **DC Offset (Average Difference)**: {metrics["DC Offset"]} ppm
             *   **Tracking Variation (STD of Differences)**: {metrics["Tracking Variation STD"]} ppm
             *   **Pearson Correlation**: {metrics["Pearson Correlation"]}
@@ -187,11 +183,21 @@ def _(compare_sensors, df, mo, s1_dropdown, s2_dropdown):
     else:
         comparison_display = mo.md("*Please select two different sensors to compare.*")
     comparison_display
-    return s1, s2
+    return comparison_display, s1, s2
 
 
 @app.cell
-def _(TIMESTAMP_COL, df, pl, s1, s2):
+def _(
+    TIMESTAMP_COL,
+    averaging_slider,
+    comparison_display,
+    comparison_widget,
+    df,
+    mo,
+    pl,
+    s1,
+    s2,
+):
     import altair as alt
     import datetime
 
@@ -254,7 +260,7 @@ def _(TIMESTAMP_COL, df, pl, s1, s2):
     else:
         chart = None
 
-    chart
+    mo.vstack([comparison_widget, averaging_slider, chart, comparison_display])
     return
 
 
