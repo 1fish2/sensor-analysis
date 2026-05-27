@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.8"
+__generated_with = "0.23.6"
 app = marimo.App(app_title="CO₂ sensor comparison")
 
 
@@ -212,6 +212,15 @@ def _(
             cutoff_time = max_time - datetime.timedelta(hours=24)
             plot_df = plot_df.filter(pl.col(TIMESTAMP_COL) >= cutoff_time)
 
+        # Dynamically downsample to at most 2000 points to keep notebook outputs small
+        # and prevent Altair/Marimo serialization size warnings.
+        # TODO: Compare with binned averages
+        # plot_df.group_by_dynamic("DateTime", every="1m").agg([plot_df.col(x).mean(), ...])
+        num_rows = len(plot_df)
+        if num_rows > 2000:
+            step = num_rows // 2000
+            plot_df = plot_df.gather_every(step)
+
         # Chart showing the difference
         diff_chart = (
             alt.Chart(plot_df)
@@ -251,7 +260,7 @@ def _(
             alt.layer(diff_chart, sensors_chart)
             .resolve_scale(y="independent")
             .properties(
-                title=f"Difference and Sensor Data Over Time (Last 24 Hours)",
+                title="Difference and Sensor Data Over Time (Last 24 Hours)",
                 width="container",
                 height=320,
             )
