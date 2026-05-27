@@ -173,7 +173,7 @@ def _(compare_sensors, df, mo, s1_dropdown, s2_dropdown):
         metrics = compare_sensors(df, s1, s2)
         comparison_display = mo.md(
             f"""
-            #### Metrics comparing sensors **{s1}** and **{s2}**
+            #### Metrics comparing all data of sensors **{s1}** and **{s2}**
             *   **Paired Points**: {metrics["Paired Points"]:,}
             *   **DC Offset (Average Difference)**: {metrics["DC Offset"]} ppm
             *   **Tracking Variation (STD of Differences)**: {metrics["Tracking Variation STD"]} ppm
@@ -194,7 +194,6 @@ def _(
     comparison_widget,
     df,
     mo,
-    pl,
     s1,
     s2,
 ):
@@ -206,11 +205,11 @@ def _(
         df2 = df.select([TIMESTAMP_COL, s1, s2]).drop_nulls(subset=[s1, s2])
         plot_df = df2.with_columns((df2[s1] - df2[s2]).alias("Difference"))
 
-        # Filter to the last 24 hours of data
-        max_time = plot_df[TIMESTAMP_COL].max()
-        if isinstance(max_time, datetime.datetime):
-            cutoff_time = max_time - datetime.timedelta(hours=24)
-            plot_df = plot_df.filter(pl.col(TIMESTAMP_COL) >= cutoff_time)
+        # # Filter to the last 24 hours of data
+        # max_time = plot_df[TIMESTAMP_COL].max()
+        # if isinstance(max_time, datetime.datetime):
+        #     cutoff_time = max_time - datetime.timedelta(hours=24)
+        #     plot_df = plot_df.filter(pl.col(TIMESTAMP_COL) >= cutoff_time)
 
         # Dynamically downsample to at most 2000 points to keep notebook outputs small
         # and prevent Altair/Marimo serialization size warnings.
@@ -257,10 +256,10 @@ def _(
         )
 
         chart = (
-            alt.layer(diff_chart, sensors_chart)
+            alt.layer(sensors_chart, diff_chart)
             .resolve_scale(y="independent")
             .properties(
-                title="Difference and Sensor Data Over Time (Last 24 Hours)",
+                title="Difference and Sensor Data Over Time",
                 width="container",
                 height=320,
             )
