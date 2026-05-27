@@ -198,7 +198,6 @@ def _(
     s2,
 ):
     import altair as alt
-    import datetime
 
     if s1 and s2 and s1 != s2:
         # Align sensors and calculate difference
@@ -211,13 +210,13 @@ def _(
         #     cutoff_time = max_time - datetime.timedelta(hours=24)
         #     plot_df = plot_df.filter(pl.col(TIMESTAMP_COL) >= cutoff_time)
 
-        # Dynamically downsample to at most 2000 points to keep notebook outputs small
+        # Dynamically downsample to at most 4000 points to keep notebook outputs small
         # and prevent Altair/Marimo serialization size warnings.
         # TODO: Compare with binned averages
         # plot_df.group_by_dynamic("DateTime", every="1m").agg([plot_df.col(x).mean(), ...])
         num_rows = len(plot_df)
-        if num_rows > 2000:
-            step = num_rows // 2000
+        if num_rows > 4000:
+            step = num_rows // 4000
             plot_df = plot_df.gather_every(step)
 
         # Chart showing the difference
